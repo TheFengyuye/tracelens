@@ -1,5 +1,7 @@
 # TraceLens 🔭
 
+[![CI](https://github.com/TheFengyuye/tracelens/actions/workflows/ci.yml/badge.svg)](https://github.com/TheFengyuye/tracelens/actions/workflows/ci.yml)
+
 > Open-source LLM & Agent observability — trace every model call, tool invocation and agent step, replay sessions, and watch the cost.
 
 TraceLens is a lightweight, self-hostable observability platform for LLM applications and AI agents:
