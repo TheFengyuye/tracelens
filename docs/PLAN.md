@@ -35,6 +35,7 @@
 - [x] 注入验证：dev_inject_plugin → host ✓ / client ✓，registry active
 - [x] conversation.view 面板内嵌 TraceLens Dashboard iframe + Capture session（会话快照摄入）
 - [x] Agent 工具：tracelens_status / tracelens_stats / tracelens_ingest + 系统提示宣告
+- [x] 全自动记录：session/event 监听（与官方 OTel 同款钩子），每轮对话自动生成 per-turn trace（LLM usage/成本 + 工具调用/耗时/错误）
 - [ ] 面板实机 UX 验证（需 GUI 刷新后人工确认）
 
 ### W4 — 打磨与发布（进行中）

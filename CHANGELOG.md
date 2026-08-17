@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- **DSH plugin**: full-auto capture of every agent turn — listens to the `session/event` bus (same hook as the official OTel telemetry plugin), emits one per-turn trace (`dsh-host-<session>-turn-<n>`) with LLM calls (model/usage/cost) and tool calls (input/output/duration/error); configurable via `autoCapture`.
 - **SDK**: SSE streaming chat (`stream: true` + `onChunk`) with cross-chunk line decoding (`sseLines`), provider-reported usage preferred, tokenizer-estimate fallback; injectable `fetchImpl` for offline tests; 3 streaming unit tests (7 SDK tests total).
 - **Server**: `SqliteStore` (better-sqlite3, WAL) implementing the pluggable `Store` interface — switch with `TRACELENS_STORE=sqlite`; shared `summarize` / `computeStats` across both backends; server unit tests (8 total: 4 JSONL + 4 SQLite) wired into CI.
 

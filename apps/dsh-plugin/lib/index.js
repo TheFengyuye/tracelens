@@ -20,7 +20,7 @@ const SECTION_ORDER = 190
 
 /** Model-facing announcement: plugin presence, capabilities, and limits. */
 export const TRACELENS_GUIDANCE =
-  '本机已安装 TraceLens 插件（LLM/Agent 可观测）：聊天视图内有「TraceLens」面板（内嵌 TraceLens Dashboard，默认 http://127.0.0.1:8787）；工具 tracelens_status 检查 server 健康、tracelens_stats 查询聚合统计（调用/token/成本/per-model）、tracelens_ingest 摄入任意 trace JSON。限制：TraceLens server 需另行启动（npm run dev:server，配置项 serverUrl 可改）；面板是浏览器内 iframe，浏览器需能访问 server。用户提到「TraceLens / 可观测 / 追踪 / 成本分析」时即指本插件，请据此协作。'
+  '本机已安装 TraceLens 插件（LLM/Agent 可观测，全自动记录）：会话中的每次 LLM 调用与工具调用会自动记录到 TraceLens（trace id 前缀 dsh-host-，面板 http://127.0.0.1:8787，配置项 serverUrl 可改、autoCapture 可关）；聊天视图内有「TraceLens」面板；工具 tracelens_status 检查 server 健康、tracelens_stats 查询聚合统计（调用/token/成本/per-model）、tracelens_ingest 摄入任意 trace JSON。限制：TraceLens server 需另行启动（npm run dev:server）；面板是浏览器内 iframe，浏览器需能访问 server；自动捕获按 1 秒节流批量上报。用户提到「TraceLens / 可观测 / 追踪 / 成本分析」时即指本插件，请据此协作。'
 
 function text(value) {
   return [{ type: 'text', text: value }]
@@ -110,6 +110,155 @@ function ingestTool(config) {
 }
 
 /**
+ * Auto-capture: watch session/event and mirror every LLM call and tool
+ * invocation into TraceLens as one growing trace per DSH session.
+ * Uses only the event bus (ctx.on) — the same hook the official OTel
+ * telemetry plugin uses.
+ */
+const COST_TABLE = {
+  'deepseek-chat': { input: 0.27, output: 1.1 },
+  'deepseek-reasoner': { input: 0.55, output: 2.19 },
+  'gpt-4o': { input: 2.5, output: 10 },
+  'gpt-4o-mini': { input: 0.15, output: 0.6 },
+  'claude-sonnet-4': { input: 3, output: 15 },
+  'claude-haiku-4': { input: 0.8, output: 4 },
+  'gemini-2.0-flash': { input: 0.1, output: 0.4 },
+}
+
+function estimateCost(model, usage) {
+  if (!usage) return undefined
+  const price = COST_TABLE[model]
+  if (!price) return undefined
+  return (usage.prompt / 1e6) * price.input + (usage.completion / 1e6) * price.output
+}
+
+function blocksToText(blocks) {
+  if (blocks === undefined || blocks === null) return ''
+  if (typeof blocks === 'string') return blocks
+  if (!Array.isArray(blocks)) return JSON.stringify(blocks)
+  return blocks
+    .map((b) => (b && b.type === 'text' ? b.text : JSON.stringify(b)))
+    .join('')
+}
+
+function traceIdOf(sessionId) {
+  return 'dsh-host-' + sessionId
+}
+
+function setupAutoCapture(ctx, cfg) {
+  // Current open turn per session: sessionId -> { turn, spans, startedAt, model }.
+  // One trace per agent turn (dsh-host-<session>-turn-<n>) — no upsert
+  // conflicts in either storage backend.
+  const sessions = new Map()
+  const base = baseUrl(cfg)
+
+  function buildTrace(sessionId, entry) {
+    return {
+      id: traceIdOf(sessionId) + '-turn-' + entry.turn,
+      sessionId,
+      name: 'dsh-turn-' + entry.turn,
+      startedAt: entry.startedAt,
+      endedAt: Date.now(),
+      metadata: { source: 'dsh-host', autoCapture: true, turn: entry.turn },
+      spans: Array.from(entry.spans.values()),
+    }
+  }
+
+  function flushSession(sessionId, entry) {
+    const trace = buildTrace(sessionId, entry)
+    fetch(base + '/api/traces', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(trace),
+    }).catch((error) => {
+      // Best-effort: a failed flush is logged, never thrown.
+      ctx.logger?.warn?.('[tracelens] auto-capture flush failed: %o', error)
+    })
+  }
+
+  const listener = ctx.on('session/event', (session, event) => {
+    if (!session || !session.id) return
+    const sessionId = session.id
+    const d = event.data || {}
+    const now = Date.now()
+
+    if (event.type === 'turn/start') {
+      sessions.set(sessionId, { turn: d.turn, spans: new Map(), startedAt: now, model: undefined })
+      return
+    }
+
+    const entry = sessions.get(sessionId)
+    if (!entry) return // events outside an open turn are ignored
+
+    switch (event.type) {
+      case 'request/header': {
+        if (d.header && d.header.config && d.header.config.model) {
+          entry.model = d.header.config.model
+        }
+        return
+      }
+      case 'assistant/message': {
+        const model = entry.model || 'unknown'
+        const text = blocksToText(d.message && d.message.content)
+        const usage = d.usage
+        entry.spans.set('llm:' + d.turn + ':' + d.step, {
+          id: 'llm-' + sessionId + '-' + d.turn + '-' + d.step,
+          traceId: traceIdOf(sessionId),
+          name: model,
+          kind: 'llm',
+          status: 'ok',
+          startedAt: now,
+          input: { turn: d.turn, step: d.step },
+          output: text,
+          usage,
+          costUsd: estimateCost(model, usage),
+          model,
+          provider: String(model).includes('deepseek') ? 'deepseek' : undefined,
+        })
+        return
+      }
+      case 'tool/call': {
+        entry.spans.set('tool:' + d.callId, {
+          id: 'tool-' + sessionId + '-' + d.callId,
+          traceId: traceIdOf(sessionId),
+          name: d.name || 'tool',
+          kind: 'tool',
+          status: 'ok',
+          startedAt: now,
+          input: { arguments: d.arguments },
+        })
+        return
+      }
+      case 'tool/result': {
+        const span = entry.spans.get('tool:' + d.callId)
+        if (span) {
+          span.endedAt = now
+          span.durationMs = now - span.startedAt
+          if (d.error) {
+            span.status = 'error'
+            span.output = { error: d.error }
+          } else {
+            span.output = blocksToText(d.message && d.message.content)
+          }
+        }
+        return
+      }
+      case 'turn/end': {
+        flushSession(sessionId, entry)
+        sessions.delete(sessionId)
+        return
+      }
+    }
+  })
+
+  ctx.effect(() => () => {
+    listener()
+    for (const [sessionId, entry] of sessions) flushSession(sessionId, entry)
+    sessions.clear()
+  }, 'tracelens: auto-capture')
+}
+
+/**
  * Mount the TraceLens surfaces.
  * @param ctx - host plugin context (tools/systemPrompt injected).
  * @param config - resolved plugin config (optional).
@@ -119,8 +268,13 @@ export function apply(ctx, config) {
     serverUrl: (config && config.serverUrl) || DEFAULT_SERVER_URL,
     announceToAgent: (config && config.announceToAgent) !== false,
     enabled: (config && config.enabled) !== false,
+    autoCapture: (config && config.autoCapture) !== false,
   }
   if (!cfg.enabled) return
+
+  if (cfg.autoCapture) {
+    setupAutoCapture(ctx, cfg)
+  }
 
   if (cfg.announceToAgent) {
     ctx.effect(() => ctx.systemPrompt.section({
