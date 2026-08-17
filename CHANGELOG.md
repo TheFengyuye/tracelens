@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- **SDK**: SSE streaming chat (`stream: true` + `onChunk`) with cross-chunk line decoding (`sseLines`), provider-reported usage preferred, tokenizer-estimate fallback; injectable `fetchImpl` for offline tests; 3 streaming unit tests (7 SDK tests total).
 - **Server**: `SqliteStore` (better-sqlite3, WAL) implementing the pluggable `Store` interface — switch with `TRACELENS_STORE=sqlite`; shared `summarize` / `computeStats` across both backends; server unit tests (8 total: 4 JSONL + 4 SQLite) wired into CI.
 
 ## [0.1.0] - 2026-08-17

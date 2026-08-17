@@ -49,7 +49,7 @@
 
 1. 异步上下文传播：AsyncLocalStorage 把父子 span 串成树（已实现）
 2. 低开销插桩：包装 fetch/客户端，失败不影响业务
-3. 流式输出 token 计数：SSE 增量累计（计划）
+3. 流式输出 token 计数：SSE 增量累计（已实现：sseLines 跨分块解码 + 优先 provider usage、回退 tokenizer 估算）
 4. 成本模型：多 provider 价格表 + 可覆盖（已实现）
 5. 回放设计：事件溯源（span 只追加，回放即重放时间线）
 6. 存储权衡：JSONL 零依赖 vs SQLite 查询能力（Store 接口抽象）
