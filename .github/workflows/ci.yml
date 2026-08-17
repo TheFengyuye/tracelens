@@ -23,5 +23,7 @@ jobs:
         run: npm run typecheck -w @tracelens/server
       - name: Build server
         run: npm run build -w @tracelens/server
+      - name: Test server
+        run: npm test -w @tracelens/server
       - name: Build web
         run: npm run build -w @tracelens/web

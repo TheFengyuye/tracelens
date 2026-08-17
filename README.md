@@ -60,3 +60,12 @@ See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md
 ## License
 
 MIT
+## Publishing
+
+```bash
+# one-time: authenticate against the npm registry
+npm adduser --registry=https://registry.npmjs.org
+
+# publish both packages (@tracelens/sdk, @tracelens/server)
+npm run publish:packages
+```

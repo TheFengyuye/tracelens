@@ -12,7 +12,8 @@
     "demo": "tsx examples/demo-agent.ts",
     "dev:server": "npm run build -w @tracelens/sdk && npm run dev -w @tracelens/server",
     "dev:web": "npm run dev -w @tracelens/web",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "publish:packages": "npm publish -w @tracelens/sdk --registry=https://registry.npmjs.org && npm publish -w @tracelens/server --registry=https://registry.npmjs.org"
   },
   "engines": {
     "node": ">=20"
