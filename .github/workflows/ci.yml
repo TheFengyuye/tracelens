@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build SDK
+        run: npm run build -w @tracelens/sdk
+      - name: Test SDK
+        run: npm test -w @tracelens/sdk
+      - name: Typecheck server
+        run: npm run typecheck -w @tracelens/server
+      - name: Build server
+        run: npm run build -w @tracelens/server
+      - name: Build web
+        run: npm run build -w @tracelens/web

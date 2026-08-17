@@ -1,0 +1,11 @@
+# Changelog
+
+## [0.1.0] - 2026-08-17
+
+### Added
+- **SDK (`@tracelens/sdk`, zero-dependency)**: `Tracer` with AsyncLocalStorage context propagation (`runWithTrace` / `withSpan` auto-parenting), span kinds (llm/tool/agent/retrieval/workflow/http/custom), error capture, auto token & cost estimation (15+ model price table, overridable), pluggable exporters (Console / HTTP / Composite), OpenAI & DeepSeek-compatible chat client.
+- **Server (`@tracelens/server`)**: zero-framework `node:http` REST API — `POST /api/traces`, `GET /api/traces` (filters + pagination), `GET /api/traces/:id`, `GET /api/stats` (calls / tokens / cost / per-model), `GET /api/health`; append-only JSONL store (crash-safe, pluggable Store interface).
+- **Web (`@tracelens/web`)**: React + Vite dashboard — stats cards, trace list with name filter + auto-refresh, span waterfall detail (input/output/token/cost), chronological session replay.
+- **DSH plugin (`@tracelens/dsh-plugin`)**: runtime-injectable — conversation.view dashboard panel (iframe), agent tools (`tracelens_status` / `tracelens_stats` / `tracelens_ingest`), session snapshot capture, system-prompt announcement.
+- **Demo**: `examples/demo-agent.ts` (mock or real DeepSeek key).
+- **CI**: GitHub Actions (SDK build+test, server typecheck+build, web build).

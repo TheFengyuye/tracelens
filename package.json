@@ -1,0 +1,25 @@
+{
+  "name": "tracelens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source LLM & Agent observability: trace, replay, and analyze every model call, tool invocation, and cost.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "demo": "tsx examples/demo-agent.ts",
+    "dev:server": "npm run build -w @tracelens/sdk && npm run dev -w @tracelens/server",
+    "dev:web": "npm run dev -w @tracelens/web",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

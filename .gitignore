@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+.DS_Store
+*.tgz
+data/
+# dev scaffold scratch (dev_scaffold_plugin output; real plugin lives in apps/dsh-plugin)
+apps/dsh-plugin-scaffold/
+# local dev server artifacts
+.server.log
+.server.pid
