@@ -30,8 +30,8 @@ test("sqlite: list sorts desc, filters, paginates", () => {
   const dir = tempDir();
   const store = new SqliteStore(dir);
   try {
-    store.add(makeTrace("ok", { name: "alpha", sessionId: "s1", spans: [{ id: "a", traceId: "ok", name: "read", kind: "tool", status: "ok", startedAt: 1000, endedAt: 1100 }] }));
-    store.add(makeTrace("err", { name: "beta", sessionId: "s1", spans: [{ id: "b", traceId: "err", name: "llm", kind: "llm", status: "error", startedAt: 2000, endedAt: 2100, error: { message: "boom" } }] }));
+    store.add(makeTrace("ok", { name: "alpha", sessionId: "s1", startedAt: 1000, endedAt: 1100, spans: [{ id: "a", traceId: "ok", name: "read", kind: "tool", status: "ok", startedAt: 1000, endedAt: 1100 }] }));
+    store.add(makeTrace("err", { name: "beta", sessionId: "s1", startedAt: 2000, endedAt: 2100, spans: [{ id: "b", traceId: "err", name: "llm", kind: "llm", status: "error", startedAt: 2000, endedAt: 2100, error: { message: "boom" } }] }));
     assert.deepEqual(store.list({}).entries.map(e => e.id), ["err", "ok"]);
     assert.equal(store.list({ name: "alpha" }).entries.length, 1);
     assert.equal(store.list({ sessionId: "s1" }).total, 2);

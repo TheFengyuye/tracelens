@@ -37,8 +37,8 @@ test("list is sorted desc and filters by name/sessionId/status", () => {
   const dir = tempDir();
   try {
     const store = new JsonlStore(dir);
-    const okTrace = makeTrace("ok", { name: "alpha", sessionId: "s1", spans: [{ id: "a", traceId: "ok", name: "read", kind: "tool", status: "ok", startedAt: 1000, endedAt: 1100 }] });
-    const errTrace = makeTrace("err", { name: "beta", sessionId: "s1", spans: [{ id: "b", traceId: "err", name: "llm", kind: "llm", status: "error", startedAt: 2000, endedAt: 2100, error: { message: "boom" } }] });
+    const okTrace = makeTrace("ok", { name: "alpha", sessionId: "s1", startedAt: 1000, endedAt: 1100, spans: [{ id: "a", traceId: "ok", name: "read", kind: "tool", status: "ok", startedAt: 1000, endedAt: 1100 }] });
+    const errTrace = makeTrace("err", { name: "beta", sessionId: "s1", startedAt: 2000, endedAt: 2100, spans: [{ id: "b", traceId: "err", name: "llm", kind: "llm", status: "error", startedAt: 2000, endedAt: 2100, error: { message: "boom" } }] });
     store.add(errTrace);
     store.add(okTrace);
 
