@@ -41,6 +41,7 @@ export interface Stats {
   perModel: Record<string, ModelStat>;
 }
 
+/** Storage abstraction: JSONL (default) and SQLite implement it. */
 export interface Store {
   add(trace: Trace): void;
   list(opts: ListOptions): { entries: TraceListEntry[]; total: number };
@@ -48,11 +49,85 @@ export interface Store {
   stats(): Stats;
 }
 
+/** Shared per-trace summary (list entries). */
+export function summarize(trace: Trace): TraceListEntry {
+  let errorCount = 0;
+  let totalCostUsd = 0;
+  let totalTokens = 0;
+  for (const span of trace.spans) {
+    if (span.status === "error") errorCount += 1;
+    totalCostUsd += span.costUsd ?? 0;
+    totalTokens += (span.usage?.prompt ?? 0) + (span.usage?.completion ?? 0);
+  }
+  return {
+    id: trace.id,
+    name: trace.name,
+    sessionId: trace.sessionId,
+    startedAt: trace.startedAt,
+    endedAt: trace.endedAt,
+    durationMs:
+      trace.endedAt !== undefined && trace.startedAt !== undefined
+        ? trace.endedAt - trace.startedAt
+        : undefined,
+    spanCount: trace.spans.length,
+    errorCount,
+    totalCostUsd,
+    totalTokens,
+  };
+}
+
+/** Shared aggregate stats (shared by every Store implementation). */
+export function computeStats(traces: Iterable<Trace>): Stats {
+  const stats: Stats = {
+    traces: 0,
+    spans: 0,
+    llmCalls: 0,
+    toolCalls: 0,
+    errors: 0,
+    totalTokens: { prompt: 0, completion: 0 },
+    totalCostUsd: 0,
+    avgDurationMs: 0,
+    perModel: {},
+  };
+
+  const durations: number[] = [];
+  for (const trace of traces) {
+    stats.traces += 1;
+    if (trace.endedAt !== undefined && trace.startedAt !== undefined) {
+      durations.push(trace.endedAt - trace.startedAt);
+    }
+    for (const span of trace.spans) {
+      stats.spans += 1;
+      if (span.kind === "llm") stats.llmCalls += 1;
+      if (span.kind === "tool") stats.toolCalls += 1;
+      if (span.status === "error") stats.errors += 1;
+      if (span.usage) {
+        stats.totalTokens.prompt += span.usage.prompt;
+        stats.totalTokens.completion += span.usage.completion;
+      }
+      if (span.costUsd) stats.totalCostUsd += span.costUsd;
+      if (span.kind === "llm" && span.model) {
+        const m = (stats.perModel[span.model] ??= { calls: 0, tokens: 0, costUsd: 0 });
+        m.calls += 1;
+        m.tokens += (span.usage?.prompt ?? 0) + (span.usage?.completion ?? 0);
+        m.costUsd += span.costUsd ?? 0;
+      }
+    }
+  }
+
+  stats.avgDurationMs =
+    durations.length > 0
+      ? durations.reduce((a, b) => a + b, 0) / durations.length
+      : 0;
+
+  return stats;
+}
+
 /**
  * Append-only JSONL store: one trace per line.
  * Zero native dependencies, crash-safe (append), and cheap for a
- * single-user self-hosted deployment. Swap for SQLite via the Store
- * interface when query volume demands it.
+ * single-user self-hosted deployment. SQLite (SqliteStore) implements the
+ * same Store interface for indexed query workloads.
  */
 export class JsonlStore implements Store {
   private readonly traces = new Map<string, Trace>();
@@ -107,74 +182,6 @@ export class JsonlStore implements Store {
   }
 
   stats(): Stats {
-    const stats: Stats = {
-      traces: 0,
-      spans: 0,
-      llmCalls: 0,
-      toolCalls: 0,
-      errors: 0,
-      totalTokens: { prompt: 0, completion: 0 },
-      totalCostUsd: 0,
-      avgDurationMs: 0,
-      perModel: {},
-    };
-
-    const durations: number[] = [];
-    for (const trace of this.traces.values()) {
-      stats.traces += 1;
-      if (trace.endedAt !== undefined && trace.startedAt !== undefined) {
-        durations.push(trace.endedAt - trace.startedAt);
-      }
-      for (const span of trace.spans) {
-        stats.spans += 1;
-        if (span.kind === "llm") stats.llmCalls += 1;
-        if (span.kind === "tool") stats.toolCalls += 1;
-        if (span.status === "error") stats.errors += 1;
-        if (span.usage) {
-          stats.totalTokens.prompt += span.usage.prompt;
-          stats.totalTokens.completion += span.usage.completion;
-        }
-        if (span.costUsd) stats.totalCostUsd += span.costUsd;
-        if (span.kind === "llm" && span.model) {
-          const m = (stats.perModel[span.model] ??= { calls: 0, tokens: 0, costUsd: 0 });
-          m.calls += 1;
-          m.tokens += (span.usage?.prompt ?? 0) + (span.usage?.completion ?? 0);
-          m.costUsd += span.costUsd ?? 0;
-        }
-      }
-    }
-
-    stats.avgDurationMs =
-      durations.length > 0
-        ? durations.reduce((a, b) => a + b, 0) / durations.length
-        : 0;
-
-    return stats;
+    return computeStats(this.traces.values());
   }
-}
-
-function summarize(trace: Trace): TraceListEntry {
-  let errorCount = 0;
-  let totalCostUsd = 0;
-  let totalTokens = 0;
-  for (const span of trace.spans) {
-    if (span.status === "error") errorCount += 1;
-    totalCostUsd += span.costUsd ?? 0;
-    totalTokens += (span.usage?.prompt ?? 0) + (span.usage?.completion ?? 0);
-  }
-  return {
-    id: trace.id,
-    name: trace.name,
-    sessionId: trace.sessionId,
-    startedAt: trace.startedAt,
-    endedAt: trace.endedAt,
-    durationMs:
-      trace.endedAt !== undefined && trace.startedAt !== undefined
-        ? trace.endedAt - trace.startedAt
-        : undefined,
-    spanCount: trace.spans.length,
-    errorCount,
-    totalCostUsd,
-    totalTokens,
-  };
 }

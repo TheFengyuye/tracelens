@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Server**: `SqliteStore` (better-sqlite3, WAL) implementing the pluggable `Store` interface — switch with `TRACELENS_STORE=sqlite`; shared `summarize` / `computeStats` across both backends; server unit tests (8 total: 4 JSONL + 4 SQLite) wired into CI.
+
 ## [0.1.0] - 2026-08-17
 
 ### Added

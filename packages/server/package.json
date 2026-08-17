@@ -19,10 +19,11 @@
     "dev": "node --import tsx src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test test/store.test.ts"
+    "test": "node --import tsx --test test/store.test.ts test/sqlite-store.test.ts"
   },
   "dependencies": {
-    "@tracelens/sdk": "*"
+    "@tracelens/sdk": "*",
+    "better-sqlite3": "^13.0.3"
   },
   "engines": {
     "node": ">=20"
@@ -35,5 +36,8 @@
     "type": "git",
     "url": "https://github.com/TheFengyuye/tracelens.git"
   },
-  "homepage": "https://github.com/TheFengyuye/tracelens#readme"
+  "homepage": "https://github.com/TheFengyuye/tracelens#readme",
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0"
+  }
 }

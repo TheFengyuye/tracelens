@@ -16,7 +16,7 @@
    - instrument.ts：OpenAI/DeepSeek 兼容 chat client，自动记录 span、usage、cost
 2. **@tracelens/server**
    - node:http 零框架 REST API
-   - JsonlStore：追加写、崩溃安全、零原生依赖；Store 接口抽象（SQLite 适配器按需添加）
+   - JsonlStore（默认）：追加写、崩溃安全、零原生依赖；SqliteStore（TRACELENS_STORE=sqlite，better-sqlite3）：索引查询 + WAL；共享 summarize/computeStats
    - 查询：列表分页/过滤、按 id 取树、聚合统计（含 per-model）
 3. **@tracelens/web**（React + Vite，规划中）
    - / 追踪列表 + 统计卡片
@@ -29,6 +29,6 @@
 
 - 零依赖 SDK：接入方零负担（内存缓冲 + export 回调）
 - 事件溯源：span 只追加，回放/统计派生，便于调试与重放
-- **JSONL 先行**：单文件、追加写、无需原生编译；Store 接口隔离存储实现
+- **双存储实现**：JSONL 零依赖默认；SQLite 走索引查询与 WAL；Store 接口 + 共享聚合逻辑隔离差异
 - 成本表集中 + 可覆盖：价格变动只改一处
 - 原生 http 起步：无框架依赖，路由手写，便于替换为 Hono/Fastify

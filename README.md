@@ -7,7 +7,7 @@
 TraceLens is a lightweight, self-hostable observability platform for LLM applications and AI agents:
 
 - **Instrument** — a zero-dependency TypeScript SDK records LLM calls (OpenAI / DeepSeek / Anthropic / Gemini compatible), tool invocations, retrieval and agent steps as nested spans.
-- **Store** — a zero-framework Node server persists traces to JSONL (pluggable Store interface, SQLite adapter planned) and exposes a REST API.
+- **Store** — a zero-framework Node server persists traces to **JSONL (default) or SQLite** (pluggable Store interface, `TRACELENS_STORE=sqlite`) and exposes a REST API.
 - **Inspect** — a web dashboard lists traces, renders span waterfalls, replays sessions, and aggregates token/cost statistics.
 - **Integrate** — ships as a DSH plugin, so every agent session in DeepSeek Harness is traced automatically.
 

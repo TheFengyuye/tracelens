@@ -17,6 +17,6 @@ npm run dev:server                # 或: cd packages/server && npm run dev
 | GET | /api/stats | 聚合统计：调用数/token/成本/延迟/per-model |
 | GET | /api/health | 健康检查 |
 
-环境变量：`PORT`（默认 8787）、`TRACELENS_DATA`（默认 ./data）、`TRACELENS_WEB_DIST`（默认 `../web/dist` 相对本包，即 `packages/web/dist`）。
+环境变量：`PORT`（默认 8787）、`TRACELENS_DATA`（默认 ./data）、`TRACELENS_STORE`（`jsonl` 默认 / `sqlite` 走 better-sqlite3）、`TRACELENS_WEB_DIST`（默认 `packages/web/dist`）。
 
 静态托管：若 `packages/web/dist` 存在（`npm run build -w @tracelens/web`），`http://127.0.0.1:8787/` 直接提供完整 Dashboard——DSH 插件面板 iframe 与浏览器直开同一入口。

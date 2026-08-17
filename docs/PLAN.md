@@ -21,7 +21,7 @@
 - [x] server：JSONL store + REST API（摄入/列表/详情/统计）
 - [x] examples/demo-agent.ts（mock 与真实 key 两种模式）
 - [ ] 单元测试跑通（node:test + tsx，代码已写，需本机 npm test）
-- [ ] SQLite 适配器（Store 接口已抽象，按需添加）
+- [x] SQLite 适配器（SqliteStore，better-sqlite3，8/8 测试）
 
 ### W2 — Web 面板
 - [ ] 追踪列表 + 过滤

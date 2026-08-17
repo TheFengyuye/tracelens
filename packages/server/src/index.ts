@@ -16,11 +16,16 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Trace } from "@tracelens/sdk";
-import { JsonlStore, type ListOptions } from "./store.js";
+import { JsonlStore, type ListOptions, type Store } from "./store.js";
+import { SqliteStore } from "./sqlite-store.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA_DIR = process.env.TRACELENS_DATA ?? "./data";
-const store = new JsonlStore(DATA_DIR);
+/** Storage backend: jsonl (default, zero-dep) or sqlite (indexed queries). */
+const STORE_KIND: "jsonl" | "sqlite" =
+  process.env.TRACELENS_STORE === "sqlite" ? "sqlite" : "jsonl";
+const store: Store =
+  STORE_KIND === "sqlite" ? new SqliteStore(DATA_DIR) : new JsonlStore(DATA_DIR);
 
 /** Built dashboard (packages/web/dist). Override with TRACELENS_WEB_DIST. */
 const WEB_DIST = process.env.TRACELENS_WEB_DIST
@@ -166,7 +171,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log("TraceLens server listening on http://127.0.0.1:" + PORT);
-  console.log("  data dir: " + DATA_DIR);
+  console.log("  data dir: " + DATA_DIR + " (store: " + STORE_KIND + ")");
   console.log(
     "  web UI:   " +
       (existsSync(WEB_DIST)
