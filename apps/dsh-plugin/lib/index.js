@@ -141,6 +141,20 @@ function blocksToText(blocks) {
     .join('')
 }
 
+function normalizeUsage(raw) {
+  if (!raw) return undefined
+  // DSH reports { inputTokens, outputTokens, cacheReadTokens, reasoningTokens }
+  if (raw.inputTokens !== undefined || raw.cacheReadTokens !== undefined) {
+    return {
+      prompt: (raw.inputTokens ?? 0) + (raw.cacheReadTokens ?? 0),
+      completion: raw.outputTokens ?? 0,
+    }
+  }
+  // SDK-compatible shape passes through
+  if (raw.prompt !== undefined) return { prompt: raw.prompt, completion: raw.completion ?? 0 }
+  return undefined
+}
+
 function traceIdOf(sessionId) {
   return 'dsh-host-' + sessionId
 }
@@ -200,7 +214,7 @@ function setupAutoCapture(ctx, cfg) {
       case 'assistant/message': {
         const model = entry.model || 'unknown'
         const text = blocksToText(d.message && d.message.content)
-        const usage = d.usage
+        const usage = normalizeUsage(d.usage)
         entry.spans.set('llm:' + d.turn + ':' + d.step, {
           id: 'llm-' + sessionId + '-' + d.turn + '-' + d.step,
           traceId: traceIdOf(sessionId),
